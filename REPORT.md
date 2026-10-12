@@ -4,9 +4,9 @@
 
 | | |
 |---|---|
-| Họ và tên | `<điền>` |
-| MSSV (đúng bằng `LAB_STUDENT_ID` trong `.env`) | `<điền>` |
-| GitHub | `<điền: tên tài khoản>` |
+| Họ và tên | `Vũ Quốc Huy` |
+| MSSV (đúng bằng `LAB_STUDENT_ID` trong `.env`) | `2A202602929` |
+| GitHub | `VuQuocHuy89` |
 | Trip dùng cho bài tập sập và chạy lại (xem GUIDE, bước 5) | `<điền: trip-xxxxx>` |
 
 ## Kết quả cuối
@@ -21,7 +21,10 @@
 ### Câu 1
 Liệt kê **ít nhất 4 khác biệt** giữa telemetry nguồn A và nguồn B mà bạn thấy ở bronze. Vì sao pipeline giữ **mỗi nguồn một bảng bronze** và để mọi cột ở dạng chữ, thay vì gộp và ép kiểu ngay?
 
-(trả lời ở đây)
+A dùng `ts_utc` dạng ISO UTC, B dùng `timestamp_ms` dạng epoch mili giây và có lệch đồng hồ khai báo 1.500 ms.
+A dùng `speed_mps`, `heading_deg`, `lat`, `lon`, `gas`, `brake`, `steer`; B tương ứng dùng `spd_kmh`, `hdg`, `latitude`, `longitude`, `throttle_pct`, `brake_pct`, `steering`. Tốc độ và bàn đạp còn khác đơn vị.
+Bronze giữ riêng 3.021 dòng A và 3.234 dòng B dưới dạng chữ để bảo toàn dữ liệu nguồn, kể cả ô trống hoặc giá trị lỗi, trước khi Silver chuẩn hóa và phân loại.
+Nạp lại A báo `already present`; lịch sử `bronze.raw_telemetry_a` vẫn chỉ có một commit với 3.021 dòng, cho thấy lần nạp lặp không nhân đôi dữ liệu.
 
 ## Bước 2 · Silver telemetry
 
