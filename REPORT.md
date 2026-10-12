@@ -31,12 +31,17 @@ Nạp lại A báo `already present`; lịch sử `bronze.raw_telemetry_a` vẫn
 ### Câu 2
 Pipeline đưa hai nguồn về một schema như thế nào (đơn vị, kiểu thời gian, **độ lệch đồng hồ**)? Bằng chứng nào trong kết quả bước 2 cho thấy đã đúng? Dán bảng quarantine của bạn (số dòng theo từng lý do, từng drive) và giải thích vì sao dòng lỗi vào `rejects` thay vì bị xoá.
 
-(trả lời ở đây)
+Staging đổi tên cột B sang schema của A, chia `spd_kmh` cho 3,6 để ra m/s và chia `throttle_pct`, `brake_pct` cho 100. Timestamp epoch mili giây của B được trừ offset 1.500 ms rồi đổi sang UTC; A vốn dùng ISO UTC và m/s.
+Sau chuẩn hóa, thời điểm đầu của B là `2025-10-08 14:30:00.009+00:00`, lệch 9 ms so với đầu video; tốc độ tối đa của A/B lần lượt là 71/100 km/h. Có 2.968 dòng sạch A và 3.181 dòng sạch B.
+Quarantine: drive A — `duplicate` 20, `speed_missing` 30, `speed_out_of_range` 3; drive B cũng lần lượt 20, 30, 3. Mỗi drive có 53 dòng rejects, nên 2.968 + 53 = 3.021 và 3.181 + 53 = 3.234 dòng đã nhận.
+Giữ dòng lỗi và lý do trong `silver.telemetry_rejects` giúp kiểm tra nguồn và đối soát tổng số dòng; xóa chúng sẽ che mất lỗi dữ liệu.
 
 ### Câu 3
 Vì sao test `max_gap_ms` là `warn` còn `in_range` là `error`? Kết quả thí nghiệm `break-gate` của bạn (`break_gate.json`): test nào bắt được, bao nhiêu dòng, và điều đó cho biết gì về vai trò của "cổng chất lượng"?
 
-(trả lời ở đây)
+`max_gap_ms` báo khoảng mất tín hiệu cảm biến để điều tra nhưng vẫn cho pipeline chạy; bước 2 có 6 PASS, 1 WARN và 0 ERROR. `in_range` chặn tốc độ ngoài 0–70 m/s vì giá trị vô lý không nên đi tiếp.
+Trong `break_gate.json`, khi nới luật làm sạch lên 1.000 m/s, test `in_range_silver_telemetry_speed_mps__70__0` phát hiện 6 dòng: 5 PASS, 1 WARN, 1 ERROR. Sau khi khôi phục luật gốc, kết quả trở lại 6 PASS, 1 WARN, 0 ERROR.
+Vì vậy cổng chất lượng vẫn phát hiện và chặn dữ liệu xấu lọt qua bước làm sạch; cảnh báo về khoảng trống cảm biến không tự động dừng toàn pipeline.
 
 ## Bước 3 · Silver frames
 
