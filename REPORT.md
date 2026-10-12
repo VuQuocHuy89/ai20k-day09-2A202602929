@@ -11,8 +11,8 @@
 
 ## Kết quả cuối
 
-- `dataset_version` của bạn: `<điền>`  (phải khớp `report/evidence/run_summary.json`)
-- Số khung hình train / val / test của bạn: `<điền>`
+- `dataset_version` của bạn: `0365e9052597`  (phải khớp `report/evidence/run_summary.json`)
+- Số khung hình train / val / test của bạn: `711 / 150 / 158`
 - `report/verify.txt`: tạo bằng `python3 scripts/check_submission.py --save-verify` (phải có `27/27 checks passed`).
 - Ảnh chụp trong `report/screenshots/`: `airflow_graph.png`, `minio_lake.png`, `metabase_dashboard.png`, và ảnh bài tập sập/chạy lại (log task đỏ thấy trip của bạn).
 
@@ -68,12 +68,14 @@ Tôi chọn ngưỡng dHash 2 đang dùng: nó bắt nhiều khung gần trùng 
 ### Câu 6
 Dựa vào `leakage.json`: chia theo khung hình làm bao nhiêu trip bị chia cắt, so với chia theo trip? Vì sao điều này làm điểm kiểm thử đẹp một cách giả tạo?
 
-(trả lời ở đây)
+Trong 1.019 khung hình dùng được thuộc 26 trip, cách chia ngẫu nhiên theo khung làm cả 26 trip xuất hiện ở nhiều split; cả 26 trip đều có khung ở train và test. Cách chia theo trip của Gold có 0 trip bị chia cắt.
+Các khung gần nhau trong một trip có cùng cảnh và tương quan mạnh. Nếu train đã chứa những khung sát với test, mô hình có thể nhận lại cảnh quen thuộc; điểm test khi đó đánh giá quá lạc quan khả năng làm việc trên trip mới.
 
 ### Câu 7
 Vì sao `dataset_version` là **băm nội dung** chứ không phải ngày giờ hay số đếm? Hai lần chạy liên tiếp cho kết quả gì? Vì sao `dataset_version` của bạn **khác** bạn bè dù cùng dữ liệu (liên hệ MSSV)?
 
-(trả lời ở đây)
+`dataset_version` được tính từ danh sách `frame_id|split`, nên cùng nội dung và cách chia sẽ cho cùng mã bất kể thời điểm chạy. Sau bước 4 và lần `export-dataset` kế tiếp, tôi đều nhận `0365e9052597`, gồm 711 train, 150 val, 158 test.
+MSSV `2A202602929` được đưa vào thứ tự băm khi xếp trip vào split; MSSV khác có thể đổi split của frame, kéo theo đổi chuỗi đầu vào của băm và `dataset_version`. Mã này giúp phát hiện dataset thay đổi và đối chiếu lần chạy lại.
 
 ### Câu 8
 Đọc phần `lineage` trong `manifest.json` của dataset bạn. Trả lời "dataset này được tạo từ dữ liệu nào?" bằng chính nội dung đó. Nếu một người hỏi 3 tháng sau, thông tin nào giúp tái tạo lại đúng dataset này?
