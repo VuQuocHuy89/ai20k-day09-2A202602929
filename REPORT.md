@@ -102,11 +102,21 @@ DuckDB hiện ghi vào một file `work/lakehouse.duckdb`; dữ liệu và phép
 
 ## Câu hỏi riêng của bạn trên Metabase
 
-Câu SQL bạn thêm vào dashboard và điều nó cho biết:
+Các câu SQL bạn thêm vào dashboard và điều chúng cho biết:
 
 Câu hỏi: trip nào giữ lại tỷ lệ frame thấp nhất sau kiểm tra chất lượng?
 `select drive_id, trip_id, frames, frames_kept, round(100.0 * frames_kept / nullif(frames, 0), 1) as kept_pct from marts.mart_trip_summary order by kept_pct, trip_id limit 5`
 Kết quả thấp nhất là `drive_a / trip-04622`: 26/60 khung được giữ, tức 43,3%; tiếp theo là `trip-03904`: 11/22, tức 50,0%. Các trip này nên được xem lại cờ chất lượng trước khi dùng để huấn luyện.
+
+Câu hỏi thứ hai (bonus): với từng drive và split, nhóm nào có tỷ lệ giữ frame thấp nhất để ưu tiên rà soát?
+`select drive_id, split, count(distinct trip_id) as trips, sum(frames) as frames, sum(frames_kept) as frames_kept, round(100.0 * sum(frames_kept) / nullif(sum(frames), 0), 1) as retention_pct from marts.mart_trip_summary group by drive_id, split order by drive_id, split`
+Kết quả thấp nhất là `drive_a / train`: giữ 280/418 frame (67,0%), so với `drive_b / train` giữ 431/486 (88,7%). Dashboard giúp ưu tiên rà soát nhóm drive_a/train.
+
+## Bonus · Thí nghiệm riêng
+
+Tôi tăng `sync_tol_ms` từ 150 ms lên 1.000 ms và chạy lại model `silver_frame_telemetry`. Ở 150 ms, drive A đồng bộ 595/602 frame, B 637/644; tổng cộng 14/1.246 frame mất đồng bộ.
+Ở 1.000 ms, A đồng bộ 597/602, B 638/644; số frame mất đồng bộ giảm từ 14 xuống 11, tức giảm 3 frame (21,4%). Ngưỡng rộng hơn có thể ghép frame với telemetry cũ đến một giây, nên tôi khôi phục 150 ms.
+Sau khi khôi phục, `step all --reset` và kiểm tra toàn bộ đạt 27/27; `dataset_version` vẫn là `0365e9052597`.
 
 ## Nhìn lại
 
