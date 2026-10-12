@@ -7,7 +7,7 @@
 | Họ và tên | `Vũ Quốc Huy` |
 | MSSV (đúng bằng `LAB_STUDENT_ID` trong `.env`) | `2A202602929` |
 | GitHub | `VuQuocHuy89` |
-| Trip dùng cho bài tập sập và chạy lại (xem GUIDE, bước 5) | `<điền: trip-xxxxx>` |
+| Trip dùng cho bài tập sập và chạy lại (xem GUIDE, bước 5) | `trip-02736` |
 
 ## Kết quả cuối
 
@@ -87,21 +87,29 @@ MSSV `2A202602929` được đưa vào thứ tự băm khi xếp trip vào split
 ### Câu 9
 Mô tả chính xác điều xảy ra khi trip của bạn sập rồi chạy lại: bao nhiêu task chuyển đỏ, bao nhiêu task `upstream_failed`, bạn clear gì, dữ liệu có nhân đôi không, `dataset_version` có đổi không? Bằng chứng (ảnh, số) là gì?
 
-(trả lời ở đây)
+Do MSSV có chữ A, tôi lấy các chữ số `2202602929`; `2202602929 % 26 = 7`, tương ứng `trip-02736`. Khi đặt `LAB_FAIL_ONCE=trip-02736`, đúng một task `silver_frames[7]` đỏ; log ghi `simulated crash while extracting trip-02736`, còn 7 task phía sau thành `upstream_failed`.
+Tôi chỉ chọn clear `silver_frames[7]`; Airflow đưa 7 task phụ thuộc vào danh sách, tổng cộng 8 task được chạy lại. Sau đó DAG xanh, `verify` đạt 27/27, Gold có 1.019 khung và `dataset_version` vẫn là `0365e9052597`, không có dấu hiệu nhân đôi.
+Ảnh `fail_task_log.png` cho thấy trip và lỗi; `airflow_retry_graph.png` cho thấy Graph xanh sau khi clear.
 
 ### Câu 10
 Nâng từ 2 drive lên **500 xe mỗi ngày**: ba thành phần nào của pipeline này sẽ vỡ đầu tiên, và bạn thay bằng gì (nối với slide 12, 22, 23)?
 
-(trả lời ở đây)
+Tôi dự kiến khâu FFmpeg/trích frame trên một máy hết CPU trước: 2 drive đã tạo 1.246 frame từ 26 trip; 500 xe/ngày làm lượng giải mã tăng rất mạnh. Tôi sẽ phân phối các trip tới nhiều worker, giữ đầu vào/ảnh trên object storage.
+Airflow hiện dùng `LocalExecutor` trong một container; khoảng 6.500 task trip/ngày sẽ gây áp lực lên scheduler và máy chạy task. Tôi sẽ dùng executor có worker mở rộng theo tải và giới hạn đồng thời cho từng tài nguyên.
+DuckDB hiện ghi vào một file `work/lakehouse.duckdb`; dữ liệu và phép join/kiểm tra tăng sẽ vượt khả năng một máy. Tôi sẽ chuyển phần biến đổi lớn sang engine phân tán hoặc warehouse mở rộng được, vẫn giữ quality gate trước Gold.
 
 ## Câu hỏi riêng của bạn trên Metabase
 
 Câu SQL bạn thêm vào dashboard và điều nó cho biết:
 
-(trả lời ở đây)
+Câu hỏi: trip nào giữ lại tỷ lệ frame thấp nhất sau kiểm tra chất lượng?
+`select drive_id, trip_id, frames, frames_kept, round(100.0 * frames_kept / nullif(frames, 0), 1) as kept_pct from marts.mart_trip_summary order by kept_pct, trip_id limit 5`
+Kết quả thấp nhất là `drive_a / trip-04622`: 26/60 khung được giữ, tức 43,3%; tiếp theo là `trip-03904`: 11/22, tức 50,0%. Các trip này nên được xem lại cờ chất lượng trước khi dùng để huấn luyện.
 
 ## Nhìn lại
 
 Điều bạn thấy bất ngờ nhất, điều gì còn chưa rõ, và một lỗi dữ liệu mà bạn nghĩ pipeline **chưa** bắt được (nếu có). Tối đa 8 dòng.
 
-(trả lời ở đây)
+Tôi bất ngờ vì B có 61 khung tối vẫn được giữ, trong khi A có 149 khung gần trùng bị loại; hai cờ chất lượng không có cùng ý nghĩa.
+Tôi còn muốn kiểm tra ngưỡng dHash 2 trên nhiều tốc độ và điều kiện ánh sáng hơn trước khi dùng cho dữ liệu mới.
+Một lỗi có thể chưa được bắt là tọa độ GPS nhảy đột ngột nhưng từng giá trị vẫn nằm trong khoảng hợp lệ; cần thêm kiểm tra tốc độ di chuyển suy ra từ các điểm GPS liên tiếp.
