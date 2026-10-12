@@ -80,7 +80,9 @@ MSSV `2A202602929` được đưa vào thứ tự băm khi xếp trip vào split
 ### Câu 8
 Đọc phần `lineage` trong `manifest.json` của dataset bạn. Trả lời "dataset này được tạo từ dữ liệu nào?" bằng chính nội dung đó. Nếu một người hỏi 3 tháng sau, thông tin nào giúp tái tạo lại đúng dataset này?
 
-(trả lời ở đây)
+`manifest.json` của `0365e9052597` ghi nguồn Bronze: `raw_telemetry_a` v0, `raw_telemetry_b` v0, `trips_raw` v0, `video_files` v1; nguồn Silver: `frames` v25, `telemetry` v0, `frames_flagged` v0, `frame_telemetry` v0.
+Hai video đầu vào có SHA256 lần lượt là A `636ba1a98dfc5ba665d1c935e1d2064e69f4df360ff9ffbd15795957d5e7e9aa` và B `bfa62703f645ff77a8578ae3fc74a00881140d38a404d43c8e2af265bbee9fdc`. Manifest còn ghi 1.019 frame và quy tắc loại khung đen, mờ, gần trùng, mất đồng bộ; split theo trip.
+Để tái tạo, cần đúng video theo SHA256, các phiên bản bảng nguồn, quy tắc xử lý/cấu hình và MSSV `2A202602929` dùng để chia split; sau đó đối chiếu `dataset_version` và manifest của lần chạy mới.
 
 ## Bước 5 · Điều phối và phục vụ
 
