@@ -48,18 +48,20 @@ Vì vậy cổng chất lượng vẫn phát hiện và chặn dữ liệu xấu
 ### Câu 4
 Dựa vào `idempotency.json`: số dòng trước và sau hai lần chạy lại, và khi ghi kiểu `append`. Vì sao Delta `overwrite` theo partition (một trip) an toàn hơn xoá rồi ghi lại, nhất là khi giữa chừng có lỗi?
 
-(trả lời ở đây)
+Thí nghiệm trên `trip-00003` có 1.246 dòng Silver và dấu vân tay `6c7480dfde7e` trước lẫn sau hai lần chạy lại. Riêng trip này có 60 khung; mô phỏng ghi `append` hai lần tạo 120 dòng, tức gấp đôi.
+Delta `overwrite` theo điều kiện `trip_id` thay toàn bộ partition bằng một commit và giữ phiên bản trước để phục hồi. Nếu xóa rồi ghi riêng, lỗi giữa hai thao tác có thể để lại partition trống hoặc ghi dở; chạy lại bằng `append` có thể nhân đôi dữ liệu.
 
 ### Câu 5
 Khung hình **đen** và khung hình **tối** khác nhau thế nào, pipeline xử lý khác nhau ra sao, bạn có đồng ý không? Dựa vào `threshold.json`: nếu chọn ngưỡng 0, 2, 6 thì bao nhiêu khung bị coi là trùng ở mỗi drive? Bạn chọn ngưỡng nào, vì sao, và ngưỡng đó phụ thuộc vào tốc độ xe thế nào?
 
 | dHash khác tối đa | số khung trùng, drive A | số khung trùng, drive B |
 |---|---|---|
-| 0 | | |
-| 2 | | |
-| 6 | | |
+| 0 | 61 | 8 |
+| 2 | 149 | 53 |
+| 6 | 363 | 244 |
 
-(trả lời ở đây)
+Khung đen là lỗi mất hình nên bị loại khỏi Gold (A: 6, B: 4). Khung tối vẫn chứa cảnh có ích nên chỉ gắn cờ và giữ lại (A: 4, B: 61); tôi đồng ý vì loại mọi cảnh tối sẽ làm mất dữ liệu đường hầm hoặc bóng râm.
+Tôi chọn ngưỡng dHash 2 đang dùng: nó bắt nhiều khung gần trùng hơn ngưỡng 0 nhưng không loại quá rộng như ngưỡng 6. Khi xe chạy chậm, cảnh thay đổi ít nên dHash giữa hai khung dễ nhỏ; ngưỡng quá cao có thể loại cả biến đổi thật, còn xe chạy nhanh thường tạo khác biệt lớn hơn giữa các khung.
 
 ## Bước 4 · Gold
 
